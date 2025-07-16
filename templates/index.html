@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <title>台鐵即時時刻表</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input, button, select { margin: 5px; padding: 8px; }
+  </style>
+</head>
+<body>
+  <h2>台鐵時刻表查詢</h2>
+  <label>出發站: <select id="from"></select></label><br>
+  <label>抵達站: <select id="to"></select></label><br>
+  <label>日期: <input id="date" type="date"></label><br>
+  <button onclick="search()">查詢</button>
+  <ul id="result"></ul>
+
+  <script>
+    async function loadStations() {
+      const res = await fetch('/api/stations');
+      const data = await res.json();
+      const from = document.getElementById('from');
+      const to = document.getElementById('to');
+
+      data.forEach(station => {
+        const option1 = document.createElement('option');
+        option1.value = station.StationID;
+        option1.text = station.StationName.Zh_tw;
+        from.appendChild(option1);
+
+        const option2 = option1.cloneNode(true);
+        to.appendChild(option2);
+      });
+    }
+
+    function search() {
+      const from = document.getElementById('from').value;
+      const to = document.getElementById('to').value;
+      const date = document.getElementById('date').value;
+
+      fetch(`/api/timetable?from=${from}&to=${to}&date=${date}`)
+        .then(res => res.json())
+        .then(data => {
+          const result = document.getElementById('result');
+          result.innerHTML = '';
+          data.forEach(item => {
+            const trainNo = item.DailyTrainInfo.TrainNo;
+            const depTime = item.OriginStopTime.DepartureTime;
+            const arrTime = item.DestinationStopTime.ArrivalTime;
+            const li = document.createElement('li');
+            li.textContent = `車次 ${trainNo}：${depTime} → ${arrTime}`;
+            result.appendChild(li);
+          });
+        });
+    }
+
+    document.getElementById('date').valueAsDate = new Date();
+    loadStations();
+  </script>
+</body>
+</html>

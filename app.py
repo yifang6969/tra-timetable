@@ -61,7 +61,15 @@ def get_timetable():
 
     # 即時資料
     realtime_url = "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/RealTimeTrain/Today"
-    realtime = requests.get(realtime_url, headers={"Authorization": f"Bearer {token}"}).json()
+    realtime_resp = requests.get(realtime_url, headers={"Authorization": f"Bearer {token}"})
+    try:
+        realtime = realtime_resp.json()
+    except:
+        realtime = []
+
+    if not isinstance(realtime, list):
+        realtime = []
+
     realtime_map = {item["TrainNo"]: item for item in realtime}
 
     # 合併資訊

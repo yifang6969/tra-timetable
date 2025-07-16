@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: tra-timetable
+    name: tra-timetable-realtime
     env: python
     buildCommand: ""
     startCommand: "gunicorn app:app"

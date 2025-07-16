@@ -10,7 +10,7 @@
   </style>
 </head>
 <body>
-  <h2>台鐵時刻表查詢</h2>
+  <h2>台鐵時刻表查詢（含即時誤點）</h2>
   <label>出發站: <select id="from"></select></label><br>
   <label>抵達站: <select id="to"></select></label><br>
   <label>日期: <input id="date" type="date"></label><br>
@@ -29,9 +29,7 @@
         option1.value = station.StationID;
         option1.text = station.StationName.Zh_tw;
         from.appendChild(option1);
-
-        const option2 = option1.cloneNode(true);
-        to.appendChild(option2);
+        to.appendChild(option1.cloneNode(true));
       });
     }
 
@@ -46,11 +44,8 @@
           const result = document.getElementById('result');
           result.innerHTML = '';
           data.forEach(item => {
-            const trainNo = item.DailyTrainInfo.TrainNo;
-            const depTime = item.OriginStopTime.DepartureTime;
-            const arrTime = item.DestinationStopTime.ArrivalTime;
             const li = document.createElement('li');
-            li.textContent = `車次 ${trainNo}：${depTime} → ${arrTime}`;
+            li.textContent = `🚆 車次 ${item.TrainNo}：${item.DepartureTime} → ${item.ArrivalTime}｜${item.Status}`;
             result.appendChild(li);
           });
         });

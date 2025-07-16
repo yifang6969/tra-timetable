@@ -2,12 +2,17 @@ from flask import Flask, render_template, request, redirect, session, jsonify
 import requests
 import os
 
+USE_DOTENV = True
+if USE_DOTENV:
+    from dotenv import load_dotenv
+    load_dotenv()
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 
 TDX_CLIENT_ID = os.environ.get("TDX_CLIENT_ID")
 TDX_CLIENT_SECRET = os.environ.get("TDX_CLIENT_SECRET")
-PASSWORD = "onlyme123"
+PASSWORD = "123"
 
 def get_tdx_token():
     url = "https://tdx.transportdata.tw/auth/realms/TDXConnect/protocol/openid-connect/token"
@@ -55,34 +60,29 @@ def get_timetable():
     date = request.args.get("date")
     token = get_tdx_token()
 
-    # 表定資料
+    headers = {"Authorization": f"Bearer {token}"}
+
+    # 查表定時刻
     timetable_url = f"https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/DailyTimetable/OD/{origin}/to/{destination}/{date}"
-    timetable = requests.get(timetable_url, headers={"Authorization": f"Bearer {token}"}).json()
+    timetable = requests.get(timetable_url, headers=headers).json()
 
-    # 即時資料
-    realtime_url = "https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/RealTimeTrain/Today"
-    realtime_resp = requests.get(realtime_url, headers={"Authorization": f"Bearer {token}"})
-    try:
-        realtime = realtime_resp.json()
-    except:
-        realtime = []
+    # 查出發站的 LiveBoard（即時動態）
+    
+    live_url = f"https://tdx.transportdata.tw/api/basic/v2/Rail/TRA/LiveBoard/Station/{origin}"
+    live_data = requests.get(live_url, headers=headers).json()
+    live_map = {item["TrainNo"]: item.get("DelayTime", 0) for item in live_data}
+    #print(live_data)
 
-    if not isinstance(realtime, list):
-        realtime = []
-
-    realtime_map = {item["TrainNo"]: item for item in realtime}
-
-    # 合併資訊
     enriched = []
     for item in timetable:
         train_no = item["DailyTrainInfo"]["TrainNo"]
         dep = item["OriginStopTime"]["DepartureTime"]
         arr = item["DestinationStopTime"]["ArrivalTime"]
-        delay = 0
-        status = "無即時資訊"
-        if train_no in realtime_map:
-            delay = realtime_map[train_no].get("DelayTime", 0)
-            status = "🚆 誤點 {} 分鐘".format(delay) if delay else "✅ 準點"
+        delay = live_map.get(train_no)
+        if delay is not None:
+            status = f"🚆 誤點 {delay} 分鐘" if delay else "✅ 準點"
+        else:
+            status = "無即時資訊"
         enriched.append({
             "TrainNo": train_no,
             "DepartureTime": dep,
@@ -93,4 +93,4 @@ def get_timetable():
     return jsonify(enriched)
 
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
